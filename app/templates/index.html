@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Chess Training Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4">Welcome to Chess Training Platform</h1>
+            <p class="lead">Improve your chess skills with our comprehensive training platform featuring puzzles, blind play, and professional courses.</p>
+            <hr class="my-4">
+            <p>Join thousands of chess enthusiasts improving their game every day.</p>
+            <a class="btn btn-primary btn-lg" href="/register" role="button">Get Started</a>
+            <a class="btn btn-outline-secondary btn-lg" href="/courses-page" role="button">Browse Courses</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-puzzle display-4 text-primary"></i>
+                <h5 class="card-title mt-3">Chess Puzzles</h5>
+                <p class="card-text">Solve thousands of chess puzzles to improve your tactical skills and pattern recognition.</p>
+                <a href="/puzzles-page" class="btn btn-primary">Try Puzzles</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-eye-slash display-4 text-success"></i>
+                <h5 class="card-title mt-3">Blind Play</h5>
+                <p class="card-text">Train your visualization skills by playing chess without seeing the board.</p>
+                <a href="/blind-play" class="btn btn-success">Start Training</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-book display-4 text-warning"></i>
+                <h5 class="card-title mt-3">Pro Courses</h5>
+                <p class="card-text">Learn from master-level courses covering openings, middlegame, and endgame strategies.</p>
+                <a href="/courses-page" class="btn btn-warning">View Courses</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-6">
+        <h3><i class="bi bi-star"></i> Features</h3>
+        <ul class="list-group">
+            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Personalized rating system</li>
+            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Track your progress and statistics</li>
+            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Multiple training modes</li>
+            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Compete on global leaderboards</li>
+            <li class="list-group-item"><i class="bi bi-check-circle text-success"></i> Access to premium courses</li>
+        </ul>
+    </div>
+    <div class="col-md-6">
+        <h3><i class="bi bi-trophy"></i> Leaderboard Preview</h3>
+        <div id="leaderboardPreview" class="list-group">
+            <div class="text-center p-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="/leaderboard" class="btn btn-outline-primary">View Full Leaderboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load leaderboard preview
+fetch('/admin/leaderboard?limit=5')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('leaderboardPreview');
+        container.innerHTML = '';
+        data.forEach((user, index) => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+            item.innerHTML = `
+                <span><strong>#${index + 1}</strong> ${user.username}</span>
+                <span class="badge bg-primary rounded-pill">${user.rating}</span>
+            `;
+            container.appendChild(item);
+        });
+    })
+    .catch(error => {
+        document.getElementById('leaderboardPreview').innerHTML = 
+            '<div class="alert alert-info">Login to view leaderboard</div>';
+    });
+</script>
+{% endblock %}

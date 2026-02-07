@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard - Chess Training Platform{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-trophy"></i> Leaderboard</h2>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Top Players</h5>
+            </div>
+            <div class="card-body">
+                <div id="leaderboard">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/admin/leaderboard?limit=50');
+        const users = await response.json();
+        
+        const container = document.getElementById('leaderboard');
+        
+        if (users.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted">No users yet</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map((user, index) => {
+                            let rankBadge = '';
+                            if (index === 0) rankBadge = '<i class="bi bi-trophy-fill text-warning"></i>';
+                            else if (index === 1) rankBadge = '<i class="bi bi-trophy-fill text-secondary"></i>';
+                            else if (index === 2) rankBadge = '<i class="bi bi-trophy-fill text-danger"></i>';
+                            
+                            return `
+                                <tr>
+                                    <td><strong>#${index + 1}</strong> ${rankBadge}</td>
+                                    <td>${user.username}</td>
+                                    <td><span class="badge bg-primary">${user.rating}</span></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        document.getElementById('leaderboard').innerHTML = 
+            '<div class="alert alert-danger">Failed to load leaderboard</div>';
+    }
+}
+
+loadLeaderboard();
+</script>
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Courses - Chess Training Platform{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-book"></i> Courses</h2>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">Filters</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Difficulty</label>
+                    <select class="form-select" id="difficultyFilter">
+                        <option value="">All Levels</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" id="categoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary w-100" onclick="filterCourses()">Apply Filters</button>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">My Courses</h6>
+            </div>
+            <div class="card-body">
+                <div id="myCourses">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div id="alertContainer"></div>
+        <div id="coursesList" class="row">
+            <div class="col-12 text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allCourses = [];
+let purchasedCourseIds = new Set();
+
+async function loadCourses() {
+    try {
+        const response = await fetch('/courses/');
+        const courses = await response.json();
+        allCourses = courses;
+        displayCourses(courses);
+    } catch (error) {
+        document.getElementById('coursesList').innerHTML = 
+            '<div class="alert alert-danger">Failed to load courses</div>';
+    }
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch('/categories/');
+        const categories = await response.json();
+        const select = document.getElementById('categoryFilter');
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Failed to load categories');
+    }
+}
+
+async function loadPurchasedCourses() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        document.getElementById('myCourses').innerHTML = '<p class="text-muted">Login to view</p>';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/courses/my/purchases', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const courses = await response.json();
+            purchasedCourseIds = new Set(courses.map(c => c.id));
+            
+            if (courses.length === 0) {
+                document.getElementById('myCourses').innerHTML = '<p class="text-muted">No courses yet</p>';
+            } else {
+                document.getElementById('myCourses').innerHTML = 
+                    '<div class="list-group list-group-flush">' +
+                    courses.map(c => `
+                        <a href="#" class="list-group-item list-group-item-action">
+                            ${c.title}
+                        </a>
+                    `).join('') +
+                    '</div>';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load purchased courses');
+    }
+}
+
+function displayCourses(courses) {
+    const container = document.getElementById('coursesList');
+    
+    if (courses.length === 0) {
+        container.innerHTML = '<div class="col-12"><p class="text-center text-muted">No courses found</p></div>';
+        return;
+    }
+    
+    container.innerHTML = courses.map(course => `
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">${course.title}</h5>
+                    <p class="card-text">${course.description || 'No description'}</p>
+                    <div class="mb-2">
+                        <span class="badge bg-info">${course.difficulty}</span>
+                        ${course.category_name ? `<span class="badge bg-secondary">${course.category_name}</span>` : ''}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="text-primary mb-0">$${course.price.toFixed(2)}</h4>
+                        ${purchasedCourseIds.has(course.id) ? 
+                            '<span class="badge bg-success">Owned</span>' :
+                            `<button class="btn btn-primary" onclick="purchaseCourse(${course.id})">Purchase</button>`
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterCourses() {
+    const difficulty = document.getElementById('difficultyFilter').value;
+    const category = document.getElementById('categoryFilter').value;
+    
+    let filtered = allCourses;
+    
+    if (difficulty) {
+        filtered = filtered.filter(c => c.difficulty === difficulty);
+    }
+    
+    if (category) {
+        filtered = filtered.filter(c => c.category_id == category);
+    }
+    
+    displayCourses(filtered);
+}
+
+async function purchaseCourse(courseId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Please login to purchase courses');
+        window.location.href = '/login';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/courses/purchase/${courseId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('alertContainer').innerHTML = 
+                '<div class="alert alert-success">Course purchased successfully!</div>';
+            loadPurchasedCourses();
+            loadCourses();
+        } else {
+            document.getElementById('alertContainer').innerHTML = 
+                `<div class="alert alert-danger">${data.detail || 'Purchase failed'}</div>`;
+        }
+    } catch (error) {
+        document.getElementById('alertContainer').innerHTML = 
+            '<div class="alert alert-danger">An error occurred</div>';
+    }
+}
+
+loadCourses();
+loadCategories();
+loadPurchasedCourses();
+</script>
+{% endblock %}
