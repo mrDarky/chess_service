@@ -80,5 +80,9 @@ async def leaderboard_page(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    try:
+        port = int(os.getenv("PORT", 8000))
+    except ValueError:
+        print("Error: PORT environment variable must be a valid integer. Using default port 8000.")
+        port = 8000
     uvicorn.run(app, host="0.0.0.0", port=port)
