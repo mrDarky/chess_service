@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Chess Training Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus"></i> Register</h4>
+            </div>
+            <div class="card-body">
+                <div id="alertContainer"></div>
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Register</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="/login">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const alertContainer = document.getElementById('alertContainer');
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        alertContainer.innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
+        return;
+    }
+    
+    const userData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: password
+    };
+    
+    try {
+        const response = await fetch('/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alertContainer.innerHTML = '<div class="alert alert-success">Registration successful! Redirecting to login...</div>';
+            setTimeout(() => window.location.href = '/login', 1500);
+        } else {
+            alertContainer.innerHTML = `<div class="alert alert-danger">${data.detail || 'Registration failed'}</div>`;
+        }
+    } catch (error) {
+        alertContainer.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Chess Training Platform{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-gear"></i> Admin Panel</h2>
+
+<div id="alertContainer"></div>
+
+<ul class="nav nav-tabs mt-4" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button">Statistics</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">Users</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories" type="button">Categories</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button">Courses</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="puzzles-tab" data-bs-toggle="tab" data-bs-target="#puzzles" type="button">Puzzles</button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3" id="adminTabContent">
+    <!-- Statistics Tab -->
+    <div class="tab-pane fade show active" id="stats" role="tabpanel">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3 id="totalUsers">-</h3>
+                        <p class="mb-0">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3 id="totalCourses">-</h3>
+                        <p class="mb-0">Total Courses</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3 id="totalPuzzles">-</h3>
+                        <p class="mb-0">Total Puzzles</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <h3 id="totalRevenue">-</h3>
+                        <p class="mb-0">Total Revenue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Users Tab -->
+    <div class="tab-pane fade" id="users" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div id="usersList">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Categories Tab -->
+    <div class="tab-pane fade" id="categories" role="tabpanel">
+        <button class="btn btn-primary mb-3" onclick="showCategoryForm()">Add Category</button>
+        <div id="categoryForm" class="card mb-3" style="display: none;">
+            <div class="card-body">
+                <h5>Add/Edit Category</h5>
+                <input type="hidden" id="categoryId">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" id="categoryName">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="categoryDescription" rows="3"></textarea>
+                </div>
+                <button class="btn btn-success" onclick="saveCategory()">Save</button>
+                <button class="btn btn-secondary" onclick="hideCategoryForm()">Cancel</button>
+            </div>
+        </div>
+        <div id="categoriesList">Loading...</div>
+    </div>
+    
+    <!-- Courses Tab -->
+    <div class="tab-pane fade" id="courses" role="tabpanel">
+        <button class="btn btn-primary mb-3" onclick="showCourseForm()">Add Course</button>
+        <div id="courseForm" class="card mb-3" style="display: none;">
+            <div class="card-body">
+                <h5>Add/Edit Course</h5>
+                <input type="hidden" id="courseId">
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" id="courseTitle">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="courseDescription" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Price</label>
+                    <input type="number" step="0.01" class="form-control" id="coursePrice">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" id="courseCategoryId">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Difficulty</label>
+                    <select class="form-select" id="courseDifficulty">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="saveCourse()">Save</button>
+                <button class="btn btn-secondary" onclick="hideCourseForm()">Cancel</button>
+            </div>
+        </div>
+        <div id="coursesList">Loading...</div>
+    </div>
+    
+    <!-- Puzzles Tab -->
+    <div class="tab-pane fade" id="puzzles" role="tabpanel">
+        <button class="btn btn-primary mb-3" onclick="showPuzzleForm()">Add Puzzle</button>
+        <div id="puzzleForm" class="card mb-3" style="display: none;">
+            <div class="card-body">
+                <h5>Add/Edit Puzzle</h5>
+                <input type="hidden" id="puzzleId">
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" id="puzzleTitle">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">FEN Position</label>
+                    <input type="text" class="form-control" id="puzzleFen" placeholder="e.g., rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Solution (move notation)</label>
+                    <input type="text" class="form-control" id="puzzleSolution" placeholder="e.g., e2-e4">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Difficulty</label>
+                    <select class="form-select" id="puzzleDifficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Rating</label>
+                    <input type="number" class="form-control" id="puzzleRating" value="1200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" id="puzzleCategoryId">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="savePuzzle()">Save</button>
+                <button class="btn btn-secondary" onclick="hidePuzzleForm()">Cancel</button>
+            </div>
+        </div>
+        <div id="puzzlesList">Loading...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/admin.js"></script>
+{% endblock %}

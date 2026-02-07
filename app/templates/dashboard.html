@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Chess Training Platform{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+<div id="alertContainer"></div>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-star display-4"></i>
+                <h5 class="card-title mt-3">Rating</h5>
+                <h2 id="userRating">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-trophy display-4"></i>
+                <h5 class="card-title mt-3">Total Games</h5>
+                <h2 id="totalGames">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-puzzle display-4"></i>
+                <h5 class="card-title mt-3">Puzzles Solved</h5>
+                <h2 id="puzzlesSolved">-</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-book display-4"></i>
+                <h5 class="card-title mt-3">Courses Owned</h5>
+                <h2 id="coursesOwned">-</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Games</h5>
+            </div>
+            <div class="card-body">
+                <div id="recentGames">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div id="statistics">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h4>Quick Actions</h4>
+        <div class="d-grid gap-2 d-md-flex">
+            <a href="/puzzles-page" class="btn btn-primary"><i class="bi bi-puzzle"></i> Solve Puzzles</a>
+            <a href="/blind-play" class="btn btn-success"><i class="bi bi-eye-slash"></i> Blind Play</a>
+            <a href="/courses-page" class="btn btn-warning"><i class="bi bi-book"></i> Browse Courses</a>
+            <a href="/leaderboard" class="btn btn-info text-white"><i class="bi bi-trophy"></i> Leaderboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadDashboard() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    try {
+        // Load user stats
+        const statsResponse = await fetch('/games/stats', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            document.getElementById('userRating').textContent = stats.rating || 1200;
+            document.getElementById('totalGames').textContent = stats.games.total_games || 0;
+            document.getElementById('puzzlesSolved').textContent = stats.puzzles.successful || 0;
+            
+            // Display game statistics
+            const statsDiv = document.getElementById('statistics');
+            statsDiv.innerHTML = `
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Wins</span>
+                        <strong class="text-success">${stats.games.wins || 0}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Losses</span>
+                        <strong class="text-danger">${stats.games.losses || 0}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Draws</span>
+                        <strong class="text-secondary">${stats.games.draws || 0}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Win Rate</span>
+                        <strong>${stats.games.total_games > 0 ? 
+                            ((stats.games.wins / stats.games.total_games) * 100).toFixed(1) : 0}%</strong>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Load recent games
+        const gamesResponse = await fetch('/games/my?limit=5', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (gamesResponse.ok) {
+            const games = await gamesResponse.json();
+            const gamesDiv = document.getElementById('recentGames');
+            
+            if (games.length === 0) {
+                gamesDiv.innerHTML = '<p class="text-center text-muted">No games played yet</p>';
+            } else {
+                gamesDiv.innerHTML = '<div class="list-group list-group-flush">' +
+                    games.map(game => `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${game.game_type}</h6>
+                                <small>${new Date(game.created_at).toLocaleDateString()}</small>
+                            </div>
+                            <p class="mb-1">
+                                Result: <span class="badge bg-${game.result === 'win' ? 'success' : game.result === 'loss' ? 'danger' : 'secondary'}">${game.result || 'N/A'}</span>
+                            </p>
+                        </div>
+                    `).join('') +
+                    '</div>';
+            }
+        }
+        
+        // Load purchased courses count
+        const coursesResponse = await fetch('/courses/my/purchases', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (coursesResponse.ok) {
+            const courses = await coursesResponse.json();
+            document.getElementById('coursesOwned').textContent = courses.length;
+        }
+        
+    } catch (error) {
+        document.getElementById('alertContainer').innerHTML = 
+            '<div class="alert alert-danger">Failed to load dashboard data</div>';
+    }
+}
+
+loadDashboard();
+</script>
+{% endblock %}

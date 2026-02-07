@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Puzzles - Chess Training Platform{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-puzzle"></i> Chess Puzzles</h2>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">Difficulty</h6>
+            </div>
+            <div class="card-body">
+                <select class="form-select" id="difficultySelect" onchange="loadPuzzles()">
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div id="puzzleStats">
+                    <p class="mb-1">Solved: <strong id="solvedCount">0</strong></p>
+                    <p class="mb-1">Total Attempts: <strong id="attemptsCount">0</strong></p>
+                    <p class="mb-0">Success Rate: <strong id="successRate">0%</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div id="alertContainer"></div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div id="puzzleContainer" class="text-center" style="display: none;">
+                    <h4 id="puzzleTitle"></h4>
+                    <div id="board" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
+                    <div class="mt-3">
+                        <p id="puzzleInfo" class="text-muted"></p>
+                        <input type="text" id="solutionInput" class="form-control mb-2" placeholder="Enter your move (e.g., e2-e4)">
+                        <button class="btn btn-success" onclick="submitSolution()">Submit Solution</button>
+                        <button class="btn btn-secondary" onclick="skipPuzzle()">Skip</button>
+                        <button class="btn btn-info" onclick="showHint()">Hint</button>
+                    </div>
+                </div>
+                
+                <div id="puzzlesList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+let allPuzzles = [];
+let currentPuzzle = null;
+let board = null;
+let game = null;
+let startTime = null;
+
+async function loadPuzzles() {
+    const difficulty = document.getElementById('difficultySelect').value;
+    const url = difficulty ? `/puzzles/?difficulty=${difficulty}` : '/puzzles/';
+    
+    try {
+        const response = await fetch(url);
+        allPuzzles = await response.json();
+        displayPuzzleList();
+    } catch (error) {
+        document.getElementById('alertContainer').innerHTML = 
+            '<div class="alert alert-danger">Failed to load puzzles</div>';
+    }
+}
+
+function displayPuzzleList() {
+    const container = document.getElementById('puzzlesList');
+    
+    if (allPuzzles.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">No puzzles found</p>';
+        return;
+    }
+    
+    container.innerHTML = '<h5>Available Puzzles</h5>' +
+        '<div class="list-group">' +
+        allPuzzles.map(puzzle => `
+            <a href="#" class="list-group-item list-group-item-action" onclick="startPuzzle(${puzzle.id}); return false;">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${puzzle.title}</h6>
+                    <small><span class="badge bg-${puzzle.difficulty === 'easy' ? 'success' : puzzle.difficulty === 'medium' ? 'warning' : 'danger'}">${puzzle.difficulty}</span></small>
+                </div>
+                <small>Rating: ${puzzle.rating}</small>
+            </a>
+        `).join('') +
+        '</div>';
+}
+
+function startPuzzle(puzzleId) {
+    currentPuzzle = allPuzzles.find(p => p.id === puzzleId);
+    if (!currentPuzzle) return;
+    
+    document.getElementById('puzzlesList').style.display = 'none';
+    document.getElementById('puzzleContainer').style.display = 'block';
+    
+    document.getElementById('puzzleTitle').textContent = currentPuzzle.title;
+    document.getElementById('puzzleInfo').textContent = 
+        `Difficulty: ${currentPuzzle.difficulty} | Rating: ${currentPuzzle.rating}`;
+    
+    // Initialize chess board
+    game = new Chess(currentPuzzle.fen);
+    board = Chessboard('board', {
+        position: currentPuzzle.fen,
+        draggable: false
+    });
+    
+    startTime = Date.now();
+    document.getElementById('solutionInput').value = '';
+}
+
+async function submitSolution() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Please login to submit solutions');
+        return;
+    }
+    
+    const solution = document.getElementById('solutionInput').value.trim();
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    const isCorrect = solution.toLowerCase() === currentPuzzle.solution.toLowerCase();
+    
+    try {
+        const response = await fetch('/puzzles/attempt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                puzzle_id: currentPuzzle.id,
+                success: isCorrect,
+                time_taken: timeTaken
+            })
+        });
+        
+        if (response.ok) {
+            if (isCorrect) {
+                document.getElementById('alertContainer').innerHTML = 
+                    '<div class="alert alert-success">Correct! +10 rating points</div>';
+            } else {
+                document.getElementById('alertContainer').innerHTML = 
+                    `<div class="alert alert-danger">Incorrect. The correct answer was: ${currentPuzzle.solution}</div>`;
+            }
+            
+            setTimeout(() => {
+                document.getElementById('puzzleContainer').style.display = 'none';
+                document.getElementById('puzzlesList').style.display = 'block';
+                document.getElementById('alertContainer').innerHTML = '';
+                loadPuzzles();
+                loadStats();
+            }, 3000);
+        }
+    } catch (error) {
+        document.getElementById('alertContainer').innerHTML = 
+            '<div class="alert alert-danger">Failed to submit solution</div>';
+    }
+}
+
+function skipPuzzle() {
+    document.getElementById('puzzleContainer').style.display = 'none';
+    document.getElementById('puzzlesList').style.display = 'block';
+}
+
+function showHint() {
+    alert(`Hint: The solution starts with "${currentPuzzle.solution.substring(0, 2)}"`);
+}
+
+async function loadStats() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+        const response = await fetch('/games/stats', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            const puzzles = stats.puzzles;
+            document.getElementById('solvedCount').textContent = puzzles.successful || 0;
+            document.getElementById('attemptsCount').textContent = puzzles.total_attempts || 0;
+            document.getElementById('successRate').textContent = 
+                puzzles.total_attempts > 0 ? 
+                ((puzzles.successful / puzzles.total_attempts) * 100).toFixed(1) + '%' : 
+                '0%';
+        }
+    } catch (error) {
+        console.error('Failed to load stats');
+    }
+}
+
+loadPuzzles();
+loadStats();
+</script>
+{% endblock %}
