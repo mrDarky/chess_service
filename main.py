@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from contextlib import asynccontextmanager
 from app.database.database import init_db
 from app.routers import auth, courses, puzzles, games, categories, admin
 from dotenv import load_dotenv
@@ -9,7 +10,14 @@ import os
 
 load_dotenv()
 
-app = FastAPI(title="Chess Training Platform", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup"""
+    await init_db()
+    print("Application started successfully")
+    yield
+
+app = FastAPI(title="Chess Training Platform", version="1.0.0", lifespan=lifespan)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -24,12 +32,6 @@ app.include_router(puzzles.router)
 app.include_router(games.router)
 app.include_router(categories.router)
 app.include_router(admin.router)
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    await init_db()
-    print("Application started successfully")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
