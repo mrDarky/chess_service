@@ -108,3 +108,30 @@ body {
 footer {
     margin-top: auto;
 }
+
+/* Blind play - blurred boards */
+.chess-board.blurred {
+    filter: blur(8px);
+    transition: filter 0.3s ease;
+}
+
+.chess-board {
+    transition: filter 0.3s ease;
+}
+
+/* Board container styling */
+#boardsContainer .card {
+    height: 100%;
+}
+
+#boardsContainer .card-body {
+    padding: 0.5rem;
+}
+
+/* Responsive board sizing */
+@media (max-width: 768px) {
+    #boardsContainer .col-md-6,
+    #boardsContainer .col-md-4 {
+        margin-bottom: 1rem;
+    }
+}

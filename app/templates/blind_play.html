@@ -16,11 +16,32 @@
                 <div id="gameStatus" class="alert alert-info">
                     Ready to start
                 </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Number of Boards</label>
+                    <select class="form-select" id="boardCount">
+                        <option value="1">1 Board</option>
+                        <option value="2">2 Boards</option>
+                        <option value="3">3 Boards</option>
+                        <option value="4">4 Boards</option>
+                        <option value="5">5 Boards</option>
+                        <option value="6">6 Boards</option>
+                        <option value="8">8 Boards</option>
+                        <option value="10">10 Boards</option>
+                    </select>
+                </div>
+                
                 <button class="btn btn-success w-100 mb-2" id="startBtn" onclick="startGame()">Start New Game</button>
-                <button class="btn btn-warning w-100 mb-2" id="showBoardBtn" onclick="toggleBoard()" disabled>Show/Hide Board</button>
-                <button class="btn btn-danger w-100" onclick="endGame()">End Game</button>
+                <button class="btn btn-danger w-100 mb-2" onclick="endAllGames()">End All Games</button>
                 
                 <hr>
+                
+                <div class="mb-3">
+                    <label class="form-label">Select Board</label>
+                    <select class="form-select mb-2" id="activeBoardSelect" disabled>
+                        <option value="0">Board 1</option>
+                    </select>
+                </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Your Move</label>
@@ -29,7 +50,7 @@
                 </div>
                 
                 <div>
-                    <h6>Move History</h6>
+                    <h6>Move History (Current Board)</h6>
                     <div id="moveHistory" class="p-2 bg-light" style="height: 200px; overflow-y: auto;">
                         No moves yet
                     </div>
@@ -39,18 +60,16 @@
     </div>
     
     <div class="col-md-8">
-        <div class="card">
+        <div id="boardsContainer" class="row">
+            <!-- Boards will be dynamically added here -->
+        </div>
+        
+        <div id="blindContainer" class="card">
             <div class="card-body text-center">
-                <div id="boardContainer" style="display: none;">
-                    <h5>Chess Board (Hint Mode)</h5>
-                    <div id="board" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
-                </div>
-                <div id="blindContainer">
-                    <div class="py-5">
-                        <i class="bi bi-eye-slash display-1 text-muted"></i>
-                        <h4 class="text-muted mt-3">Visualize the board in your mind</h4>
-                        <p class="text-muted">Use algebraic notation to make your moves</p>
-                    </div>
+                <div class="py-5">
+                    <i class="bi bi-eye-slash display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">Select number of boards and click Start</h4>
+                    <p class="text-muted">Boards will be blurred by default to train visualization</p>
                 </div>
             </div>
         </div>
@@ -83,62 +102,136 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <script>
-let game = null;
-let board = null;
-let moveCount = 0;
-let startTime = null;
-let boardVisible = false;
+let games = []; // Array to hold multiple game instances
+let boards = []; // Array to hold multiple board instances
+let moveHistory = []; // Array to hold move history for each board
+let startTimes = []; // Array to hold start times for each board
+let blurStates = []; // Array to hold blur state for each board
+let currentBoardIndex = 0; // Currently selected board
 
 function startGame() {
-    game = new Chess();
-    board = Chessboard('board', {
-        position: 'start',
-        draggable: false
-    });
+    const boardCount = parseInt(document.getElementById('boardCount').value);
     
-    moveCount = 0;
-    startTime = Date.now();
-    boardVisible = false;
+    // Clear existing games
+    games = [];
+    boards = [];
+    moveHistory = [];
+    startTimes = [];
+    blurStates = [];
+    currentBoardIndex = 0;
     
+    // Hide blind container
+    document.getElementById('blindContainer').style.display = 'none';
+    
+    // Clear boards container
+    const boardsContainer = document.getElementById('boardsContainer');
+    boardsContainer.innerHTML = '';
+    
+    // Create board selection dropdown
+    const boardSelect = document.getElementById('activeBoardSelect');
+    boardSelect.innerHTML = '';
+    
+    // Initialize boards
+    for (let i = 0; i < boardCount; i++) {
+        // Create game instance
+        games[i] = new Chess();
+        moveHistory[i] = [];
+        startTimes[i] = Date.now();
+        blurStates[i] = true; // Default to blurred
+        
+        // Create board container
+        const colClass = boardCount === 1 ? 'col-12' : boardCount <= 4 ? 'col-md-6' : 'col-md-4';
+        const boardCard = document.createElement('div');
+        boardCard.className = `${colClass} mb-3`;
+        boardCard.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Board ${i + 1}</h6>
+                    <button class="btn btn-sm btn-light" onclick="toggleBoardBlur(${i})">
+                        <i class="bi bi-eye" id="blurIcon${i}"></i>
+                    </button>
+                </div>
+                <div class="card-body p-2">
+                    <div id="board${i}" class="chess-board blurred" style="width: 100%;"></div>
+                </div>
+            </div>
+        `;
+        boardsContainer.appendChild(boardCard);
+        
+        // Initialize chessboard
+        boards[i] = Chessboard(`board${i}`, {
+            position: 'start',
+            draggable: false
+        });
+        
+        // Add to dropdown
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Board ${i + 1}`;
+        boardSelect.appendChild(option);
+    }
+    
+    // Enable controls
     document.getElementById('moveInput').disabled = false;
     document.getElementById('makeMoveBtn').disabled = false;
-    document.getElementById('showBoardBtn').disabled = false;
-    document.getElementById('startBtn').textContent = 'Restart Game';
+    document.getElementById('activeBoardSelect').disabled = false;
+    document.getElementById('startBtn').textContent = 'Restart Games';
     document.getElementById('gameStatus').className = 'alert alert-success';
-    document.getElementById('gameStatus').textContent = 'Game in progress - Your turn (White)';
-    document.getElementById('moveHistory').textContent = 'Game started';
+    document.getElementById('gameStatus').textContent = `${boardCount} game(s) in progress`;
     
-    document.getElementById('boardContainer').style.display = 'none';
-    document.getElementById('blindContainer').style.display = 'block';
+    // Update move history for first board
+    updateMoveHistoryDisplay();
+    
+    // Set initial blur on all boards
+    for (let i = 0; i < boardCount; i++) {
+        const boardElement = document.getElementById(`board${i}`);
+        if (boardElement) {
+            boardElement.classList.add('blurred');
+        }
+    }
+}
+
+function toggleBoardBlur(boardIndex) {
+    blurStates[boardIndex] = !blurStates[boardIndex];
+    const boardElement = document.getElementById(`board${boardIndex}`);
+    const iconElement = document.getElementById(`blurIcon${boardIndex}`);
+    
+    if (blurStates[boardIndex]) {
+        boardElement.classList.add('blurred');
+        iconElement.className = 'bi bi-eye';
+    } else {
+        boardElement.classList.remove('blurred');
+        iconElement.className = 'bi bi-eye-slash';
+    }
 }
 
 function makeMove() {
     const moveInput = document.getElementById('moveInput').value.trim();
-    if (!moveInput) return;
+    const boardIndex = parseInt(document.getElementById('activeBoardSelect').value);
+    
+    if (!moveInput || !games[boardIndex]) return;
     
     try {
-        // Try different move formats
         let move = null;
         
         // Try standard algebraic notation
-        move = game.move(moveInput);
+        move = games[boardIndex].move(moveInput);
         
         // If that fails, try from-to notation
         if (!move && moveInput.includes('-')) {
             const [from, to] = moveInput.split('-');
-            move = game.move({ from: from.trim(), to: to.trim() });
+            move = games[boardIndex].move({ from: from.trim(), to: to.trim() });
         }
         
         if (move) {
-            moveCount++;
-            updateMoveHistory(move.san, 'white');
+            moveHistory[boardIndex].push({ move: move.san, player: 'white' });
+            updateMoveHistoryDisplay();
             
-            if (board && boardVisible) {
-                board.position(game.fen());
-            }
+            // Update board position
+            boards[boardIndex].position(games[boardIndex].fen());
             
             // Make computer move
-            setTimeout(makeComputerMove, 500);
+            setTimeout(() => makeComputerMove(boardIndex), 500);
             
             document.getElementById('moveInput').value = '';
         } else {
@@ -149,70 +242,70 @@ function makeMove() {
     }
 }
 
-function makeComputerMove() {
-    const moves = game.moves();
+function makeComputerMove(boardIndex) {
+    const moves = games[boardIndex].moves();
     
     if (moves.length === 0) {
-        endGame();
+        endGame(boardIndex);
         return;
     }
     
     // Simple random move for opponent
     const randomMove = moves[Math.floor(Math.random() * moves.length)];
-    game.move(randomMove);
+    games[boardIndex].move(randomMove);
     
-    updateMoveHistory(randomMove, 'black');
+    moveHistory[boardIndex].push({ move: randomMove, player: 'black' });
+    updateMoveHistoryDisplay();
     
-    if (board && boardVisible) {
-        board.position(game.fen());
-    }
+    // Update board position
+    boards[boardIndex].position(games[boardIndex].fen());
     
     // Check if game is over
-    if (game.game_over()) {
-        endGame();
-    } else {
-        document.getElementById('gameStatus').textContent = 'Your turn (White)';
+    if (games[boardIndex].game_over()) {
+        endGame(boardIndex);
     }
 }
 
-function updateMoveHistory(move, player) {
+function updateMoveHistoryDisplay() {
+    const boardIndex = parseInt(document.getElementById('activeBoardSelect').value);
     const historyDiv = document.getElementById('moveHistory');
-    const moveNumber = Math.floor(moveCount / 2) + 1;
-    const color = player === 'white' ? 'text-primary' : 'text-danger';
     
-    if (player === 'white') {
-        historyDiv.innerHTML += `<div><strong>${moveNumber}.</strong> <span class="${color}">${move}</span>`;
-    } else {
-        const lastLine = historyDiv.lastElementChild;
-        if (lastLine) {
-            lastLine.innerHTML += ` <span class="${color}">${move}</span></div>`;
+    if (!moveHistory[boardIndex] || moveHistory[boardIndex].length === 0) {
+        historyDiv.innerHTML = 'No moves yet';
+        return;
+    }
+    
+    historyDiv.innerHTML = '';
+    let moveNumber = 1;
+    
+    for (let i = 0; i < moveHistory[boardIndex].length; i += 2) {
+        const whiteMove = moveHistory[boardIndex][i];
+        const blackMove = moveHistory[boardIndex][i + 1];
+        
+        let line = `<div><strong>${moveNumber}.</strong> `;
+        if (whiteMove) {
+            line += `<span class="text-primary">${whiteMove.move}</span>`;
         }
+        if (blackMove) {
+            line += ` <span class="text-danger">${blackMove.move}</span>`;
+        }
+        line += '</div>';
+        
+        historyDiv.innerHTML += line;
+        moveNumber++;
     }
     
     historyDiv.scrollTop = historyDiv.scrollHeight;
 }
 
-function toggleBoard() {
-    boardVisible = !boardVisible;
+async function endGame(boardIndex) {
+    if (!games[boardIndex]) return;
     
-    if (boardVisible) {
-        document.getElementById('boardContainer').style.display = 'block';
-        document.getElementById('blindContainer').style.display = 'none';
-        board.position(game.fen());
-    } else {
-        document.getElementById('boardContainer').style.display = 'none';
-        document.getElementById('blindContainer').style.display = 'block';
-    }
-}
-
-async function endGame() {
-    if (!game) return;
-    
-    const duration = Math.floor((Date.now() - startTime) / 1000);
+    const duration = Math.floor((Date.now() - startTimes[boardIndex]) / 1000);
     let result = 'draw';
     
-    if (game.in_checkmate()) {
-        result = game.turn() === 'w' ? 'loss' : 'win';
+    if (games[boardIndex].in_checkmate()) {
+        result = games[boardIndex].turn() === 'w' ? 'loss' : 'win';
     }
     
     // Save game
@@ -228,31 +321,51 @@ async function endGame() {
                 body: JSON.stringify({
                     game_type: 'blind_play',
                     result: result,
-                    moves: game.pgn(),
+                    moves: games[boardIndex].pgn(),
                     duration: duration
                 })
             });
             
-            alert(`Game ended! Result: ${result}. Duration: ${duration}s`);
+            alert(`Board ${boardIndex + 1} game ended! Result: ${result}. Duration: ${duration}s`);
         } catch (error) {
             console.error('Failed to save game');
         }
     }
-    
-    // Reset
-    document.getElementById('moveInput').disabled = true;
-    document.getElementById('makeMoveBtn').disabled = true;
-    document.getElementById('showBoardBtn').disabled = true;
-    document.getElementById('gameStatus').className = 'alert alert-info';
-    document.getElementById('gameStatus').textContent = `Game ended - ${result}`;
 }
 
-// Enter key to make move
+function endAllGames() {
+    if (games.length === 0) return;
+    
+    if (confirm('Are you sure you want to end all games?')) {
+        for (let i = 0; i < games.length; i++) {
+            if (games[i]) {
+                endGame(i);
+            }
+        }
+        
+        // Reset UI
+        document.getElementById('moveInput').disabled = true;
+        document.getElementById('makeMoveBtn').disabled = true;
+        document.getElementById('activeBoardSelect').disabled = true;
+        document.getElementById('gameStatus').className = 'alert alert-info';
+        document.getElementById('gameStatus').textContent = 'All games ended';
+        document.getElementById('boardsContainer').innerHTML = '';
+        document.getElementById('blindContainer').style.display = 'block';
+        document.getElementById('startBtn').textContent = 'Start New Game';
+    }
+}
+
+// Board selection change handler
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('moveInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             makeMove();
         }
+    });
+    
+    document.getElementById('activeBoardSelect').addEventListener('change', function() {
+        currentBoardIndex = parseInt(this.value);
+        updateMoveHistoryDisplay();
     });
 });
 </script>
