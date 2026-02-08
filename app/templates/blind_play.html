@@ -107,7 +107,6 @@ let boards = []; // Array to hold multiple board instances
 let moveHistory = []; // Array to hold move history for each board
 let startTimes = []; // Array to hold start times for each board
 let blurStates = []; // Array to hold blur state for each board
-let currentBoardIndex = 0; // Currently selected board
 
 function startGame() {
     const boardCount = parseInt(document.getElementById('boardCount').value);
@@ -118,7 +117,6 @@ function startGame() {
     moveHistory = [];
     startTimes = [];
     blurStates = [];
-    currentBoardIndex = 0;
     
     // Hide blind container
     document.getElementById('blindContainer').style.display = 'none';
@@ -298,8 +296,8 @@ function updateMoveHistoryDisplay() {
     historyDiv.scrollTop = historyDiv.scrollHeight;
 }
 
-async function endGame(boardIndex) {
-    if (!games[boardIndex]) return;
+async function endGame(boardIndex, silent = false) {
+    if (!games[boardIndex]) return null;
     
     const duration = Math.floor((Date.now() - startTimes[boardIndex]) / 1000);
     let result = 'draw';
@@ -326,21 +324,40 @@ async function endGame(boardIndex) {
                 })
             });
             
-            alert(`Board ${boardIndex + 1} game ended! Result: ${result}. Duration: ${duration}s`);
+            if (!silent) {
+                alert(`Board ${boardIndex + 1} game ended! Result: ${result}. Duration: ${duration}s`);
+            }
+            return { boardIndex, result, duration };
         } catch (error) {
-            console.error('Failed to save game');
+            console.error('Failed to save game for board', boardIndex + 1);
+            return null;
         }
     }
+    return null;
 }
 
-function endAllGames() {
+async function endAllGames() {
     if (games.length === 0) return;
     
     if (confirm('Are you sure you want to end all games?')) {
+        // End all games in parallel and collect results
+        const endPromises = [];
         for (let i = 0; i < games.length; i++) {
             if (games[i]) {
-                endGame(i);
+                endPromises.push(endGame(i, true)); // silent = true to avoid multiple alerts
             }
+        }
+        
+        // Wait for all games to be saved
+        const results = await Promise.all(endPromises);
+        
+        // Show summary of all games
+        const validResults = results.filter(r => r !== null);
+        if (validResults.length > 0) {
+            const summary = validResults.map(r => 
+                `Board ${r.boardIndex + 1}: ${r.result} (${r.duration}s)`
+            ).join('\n');
+            alert(`All games ended:\n${summary}`);
         }
         
         // Reset UI
@@ -364,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('activeBoardSelect').addEventListener('change', function() {
-        currentBoardIndex = parseInt(this.value);
         updateMoveHistoryDisplay();
     });
 });
