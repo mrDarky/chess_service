@@ -48,8 +48,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     // Trim input values
     const usernameField = document.getElementById('username');
     const emailField = document.getElementById('email');
-    usernameField.value = usernameField.value.trim();
-    emailField.value = emailField.value.trim();
+    usernameField.value = (usernameField.value || '').trim();
+    emailField.value = (emailField.value || '').trim();
     
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
