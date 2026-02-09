@@ -19,9 +19,26 @@ def _prepare_password(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
+    """
+    Verify a password against its hash.
+    Supports both legacy hashes (without SHA-256 pre-hashing) and new hashes (with SHA-256 pre-hashing).
+    """
+    # First try with SHA-256 pre-hashing (new method)
     prepared_password = _prepare_password(plain_password)
-    return pwd_context.verify(prepared_password, hashed_password)
+    if pwd_context.verify(prepared_password, hashed_password):
+        return True
+    
+    # Fallback to direct verification for backward compatibility with existing hashes
+    # This handles passwords that were hashed before the SHA-256 pre-hashing was added
+    try:
+        if pwd_context.verify(plain_password, hashed_password):
+            return True
+    except ValueError:
+        # If the password is too long for bcrypt, the ValueError is expected
+        # and we can safely ignore it since we already tried with pre-hashing above
+        pass
+    
+    return False
 
 def get_password_hash(password: str) -> str:
     """Hash a password"""
