@@ -1,10 +1,18 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
 
 class UserBase(BaseModel):
     username: str
     email: EmailStr
+    
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        """Validate and normalize username"""
+        if not v or not v.strip():
+            raise ValueError('Username cannot be empty or contain only whitespace')
+        return v.strip()
 
 class UserCreate(UserBase):
     password: str

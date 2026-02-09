@@ -37,8 +37,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const alertContainer = document.getElementById('alertContainer');
     
+    // Trim username value
+    const usernameField = document.getElementById('username');
+    usernameField.value = usernameField.value.trim();
+    
     const formData = new FormData();
-    formData.append('username', document.getElementById('username').value);
+    formData.append('username', usernameField.value);
     formData.append('password', document.getElementById('password').value);
     
     try {
