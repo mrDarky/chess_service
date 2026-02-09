@@ -36,7 +36,7 @@ async function fetchUserInfo(token) {
         
         if (response.ok) {
             const user = await response.json();
-            const usernameSpan = document.getElementById('username');
+            const usernameSpan = document.getElementById('navUsername');
             if (usernameSpan) {
                 usernameSpan.textContent = user.username;
             }
