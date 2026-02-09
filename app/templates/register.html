@@ -46,7 +46,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     const alertContainer = document.getElementById('alertContainer');
     
     const username = document.getElementById('username').value;
-    const email = document.getElementById('email').value;
+    const emailField = document.getElementById('email');
+    // Trim email only (emails with whitespace are universally invalid)
+    emailField.value = (emailField.value || '').trim();
+    const email = emailField.value;
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
