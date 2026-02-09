@@ -26,7 +26,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Handle validation errors with user-friendly messages"""
     errors = []
     for error in exc.errors():
-        field = error.get("loc", [])[-1] if error.get("loc") else "field"
+        loc = error.get("loc", [])
+        field = loc[-1] if loc and len(loc) > 0 else "field"
         msg = error.get("msg", "Invalid value")
         errors.append(f"{field}: {msg}")
     
