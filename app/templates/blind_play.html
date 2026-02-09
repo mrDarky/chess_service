@@ -212,7 +212,7 @@ function toggleBoardBlur(boardIndex) {
 }
 
 function makeMove() {
-    const moveInput = document.getElementById('moveInput').value.trim();
+    const moveInput = (document.getElementById('moveInput').value || '').trim();
     const boardIndex = parseInt(document.getElementById('activeBoardSelect').value);
     
     if (!moveInput || !games[boardIndex]) return;
@@ -226,7 +226,7 @@ function makeMove() {
         // If that fails, try from-to notation
         if (!move && moveInput.includes('-')) {
             const [from, to] = moveInput.split('-');
-            move = games[boardIndex].move({ from: from.trim(), to: to.trim() });
+            move = games[boardIndex].move({ from: (from || '').trim(), to: (to || '').trim() });
         }
         
         if (move) {

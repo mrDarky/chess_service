@@ -39,7 +39,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     
     // Trim username value
     const usernameField = document.getElementById('username');
-    usernameField.value = usernameField.value.trim();
+    usernameField.value = (usernameField.value || '').trim();
     
     const formData = new FormData();
     formData.append('username', usernameField.value);

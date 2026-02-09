@@ -140,7 +140,7 @@ async function submitSolution() {
         return;
     }
     
-    const solution = document.getElementById('solutionInput').value.trim();
+    const solution = (document.getElementById('solutionInput').value || '').trim();
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
     const isCorrect = solution.toLowerCase() === currentPuzzle.solution.toLowerCase();
     
