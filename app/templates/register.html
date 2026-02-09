@@ -45,12 +45,11 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     e.preventDefault();
     const alertContainer = document.getElementById('alertContainer');
     
-    // Trim input values
-    const usernameField = document.getElementById('username');
+    const username = document.getElementById('username').value;
     const emailField = document.getElementById('email');
-    usernameField.value = (usernameField.value || '').trim();
+    // Trim email only (emails with whitespace are universally invalid)
     emailField.value = (emailField.value || '').trim();
-    
+    const email = emailField.value;
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
@@ -60,8 +59,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     }
     
     const userData = {
-        username: usernameField.value,
-        email: emailField.value,
+        username: username,
+        email: email,
         password: password
     };
     
