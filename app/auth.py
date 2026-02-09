@@ -22,6 +22,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a password against its hash.
     Supports both legacy hashes (without SHA-256 pre-hashing) and new hashes (with SHA-256 pre-hashing).
+    
+    Note: This dual-verification approach is used for backward compatibility with existing users.
+    While this could theoretically introduce timing side-channels, the security tradeoff is acceptable
+    for this application to avoid forcing all users to reset their passwords.
+    
+    New deployments without existing users may want to remove the fallback logic for a slight
+    security improvement.
     """
     # First try with SHA-256 pre-hashing (new method)
     prepared_password = _prepare_password(plain_password)
