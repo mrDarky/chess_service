@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from app.database.database import init_db
 from app.routers import auth, courses, puzzles, games, categories, admin
@@ -18,6 +19,23 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Chess Training Platform", version="1.0.0", lifespan=lifespan)
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors with user-friendly messages"""
+    errors = []
+    for error in exc.errors():
+        loc = error.get("loc", [])
+        field = loc[-1] if loc and len(loc) > 0 else "field"
+        msg = error.get("msg", "Invalid value")
+        errors.append(f"{field}: {msg}")
+    
+    error_message = "; ".join(errors)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": error_message}
+    )
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
